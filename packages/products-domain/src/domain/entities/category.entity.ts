@@ -10,7 +10,7 @@ export class Category {
     return new Category(null, props.name);
   }
 
-  static reconstiture(props: { id: number; name: string }) {
+  static reconstitute(props: { id: number; name: string }) {
     return new Category(props.id, props.name);
   }
 
