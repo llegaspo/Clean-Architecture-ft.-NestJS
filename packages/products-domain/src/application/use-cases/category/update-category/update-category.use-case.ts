@@ -2,6 +2,7 @@ import { IUseCase } from '../../../interfaces/use-case.interface';
 import { ICategoryRepository } from '../../../interfaces/category-repository.interface';
 
 import { Category } from '../../../../domain/entities/category.entity';
+import { NotFoundException } from '@nestjs/common';
 export class UpdateCategoryUseCase implements IUseCase<
   { id: number; name?: string },
   Category
@@ -11,7 +12,7 @@ export class UpdateCategoryUseCase implements IUseCase<
   async execute(input: { id: number; name?: string }): Promise<Category> {
     const toBeUpdated = await this.categoryRepository.findById(input.id);
 
-    if (!toBeUpdated) throw new Error('Categroy doesnt exists');
+    if (!toBeUpdated) throw new NotFoundException('Category doesnt exists');
 
     toBeUpdated.update({
       name: input.name,

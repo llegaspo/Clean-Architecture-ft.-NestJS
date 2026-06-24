@@ -1,25 +1,30 @@
 import { RxJsonSchema, RxCollection, RxDocument } from 'rxdb';
 
 export type CategoryDocType = {
-  categoryId: number;
+  id: number;
   name: string;
 };
 
 export const categorySchema: RxJsonSchema<CategoryDocType> = {
   title: 'category schema',
   version: 0,
-  primaryKey: 'categoryId',
+  primaryKey: 'id',
   type: 'object',
   properties: {
-    categoryId: {
+    id: {
       type: 'number',
+      minimum: 1,
+      maximum: 1000000000000000,
+      multipleOf: 1,
+      maxLength: 16,
     },
     name: {
       type: 'string',
+      maxLength: 100,
     },
   },
-  required: ['categoryId', 'name'],
-  indexes: ['categoryId', 'name'],
+  required: ['id', 'name'],
+  indexes: ['id', 'name'],
 };
 
 export type CategoryDocument = RxDocument<CategoryDocType>;

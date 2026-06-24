@@ -21,13 +21,6 @@ export class Category {
     }
   }
 
-  delete(props: { hasAssignedProducts: boolean }) {
-    if (props.hasAssignedProducts)
-      throw new Error(
-        'Cannot delete category as it is still assigned to a product/s',
-      );
-  }
-
   get id(): number | null {
     return this.categoryId;
   }

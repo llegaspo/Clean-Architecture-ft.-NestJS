@@ -1,10 +1,11 @@
-import { Catch, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ICategoryRepository } from '../../application/interfaces/category-repository.interface';
 import { PRODUCT_DATABASE } from '../rxdb/database.provider';
 import type { ProductDatabase } from '../rxdb/database.type';
 import { CategoryCollection, CategoryDocType } from '../rxdb/category.schema';
 import { Category } from '../../domain/entities/category.entity';
 
+@Injectable()
 export class RxdbCategoryRepository implements ICategoryRepository {
   private readonly categoryCollections: CategoryCollection;
   constructor(
@@ -16,21 +17,21 @@ export class RxdbCategoryRepository implements ICategoryRepository {
 
   private toDomain(raw: CategoryDocType): Category {
     return Category.reconstitute({
-      id: raw.categoryId,
+      id: raw.id,
       name: raw.name,
     });
   }
 
   private toPersistence(category: Category): CategoryDocType {
     return {
-      categoryId: category.id ?? Date.now(),
+      id: category.id ?? Date.now(),
       name: category.name,
     };
   }
 
   async save(category: Category): Promise<Category> {
     const categoryData = this.toPersistence(category);
-    if (categoryData.categoryId) {
+    if (categoryData.id) {
       const updated = await this.categoryCollections.upsert(categoryData);
       return this.toDomain(updated.toJSON());
     } else {
@@ -50,7 +51,7 @@ export class RxdbCategoryRepository implements ICategoryRepository {
     const category = await this.categoryCollections
       .findOne({
         selector: {
-          categoryId: {
+          id: {
             $eq: id,
           },
         },
@@ -79,12 +80,14 @@ export class RxdbCategoryRepository implements ICategoryRepository {
     const toBeDeleted = await this.categoryCollections
       .findOne({
         selector: {
-          categoryId: {
+          id: {
             $eq: id,
           },
         },
       })
       .exec();
-    await toBeDeleted?.remove();
+    if (toBeDeleted === null)
+      throw new NotFoundException('Category doesnt exist');
+    await toBeDeleted.remove();
   }
 }

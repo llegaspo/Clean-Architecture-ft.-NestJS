@@ -1,21 +1,22 @@
 export class Product {
   private constructor(
-    private readonly productId: string | null,
+    private readonly productId: number | null,
     private productName: string,
     private productPrice: number,
     private productStock: number,
-    private productCategoryId?: number,
+    private productCategoryId: number,
   ) {}
 
   static create(props: {
     name: string;
     price: number;
     stock: number;
-    categoryId?: number;
+    categoryId: number;
   }): Product {
     if (!props.name.trim()) throw new Error('Product name cannot be empty');
     if (props.price < 0) throw new Error('Product price cannot be negative');
     if (props.stock < 0) throw new Error('Product stock cannot be empty');
+    if (!props.categoryId) throw new Error('Category doesnt exist');
 
     return new Product(
       null,
@@ -27,11 +28,11 @@ export class Product {
   }
 
   static reconstitute(props: {
-    productId: string;
+    productId: number;
     name: string;
     price: number;
     stock: number;
-    categoryId?: number;
+    categoryId: number;
   }): Product {
     return new Product(
       props.productId,
@@ -54,7 +55,7 @@ export class Product {
       this.productCategoryId = props.categoryId;
   }
 
-  get id(): string | null {
+  get id(): number | null {
     return this.productId;
   }
 
@@ -70,7 +71,7 @@ export class Product {
     return this.productStock;
   }
 
-  get categoryId(): number | undefined {
+  get categoryId(): number {
     return this.productCategoryId;
   }
 }

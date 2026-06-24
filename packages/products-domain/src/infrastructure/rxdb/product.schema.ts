@@ -1,26 +1,29 @@
 import type { RxJsonSchema, RxDocument, RxCollection } from 'rxdb';
 
 export type ProductDocType = {
-  productId: string;
+  id: number;
   name: string;
   price: number;
   stock: number;
-  categoryId?: number;
+  categoryId: number;
 };
 
 export const productSchema: RxJsonSchema<ProductDocType> = {
   title: 'product schema',
   version: 0,
-  primaryKey: 'productId',
+  primaryKey: 'id',
   type: 'object',
   properties: {
-    productId: {
-      type: 'string',
-      minLength: 1,
-      maxLength: 100,
+    id: {
+      type: 'number',
+      minimum: 1,
+      maximum: 1000000000000000,
+      multipleOf: 1,
+      maxLength: 16,
     },
     name: {
       type: 'string',
+      maxLength: 100,
     },
     price: {
       type: 'number',
@@ -30,10 +33,13 @@ export const productSchema: RxJsonSchema<ProductDocType> = {
     },
     categoryId: {
       type: 'number',
+      minimum: 1,
+      maximum: 1000000000000000,
+      multipleOf: 1,
     },
   },
-  required: ['productId', 'name', 'price', 'stock'],
-  indexes: ['name', 'categoryId'],
+  required: ['id', 'name', 'price', 'stock'],
+  indexes: ['name', 'id', 'categoryId'],
 };
 
 export type ProductDocument = RxDocument<ProductDocType>;

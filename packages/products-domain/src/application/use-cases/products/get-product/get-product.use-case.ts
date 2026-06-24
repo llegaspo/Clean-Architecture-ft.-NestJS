@@ -4,12 +4,12 @@ import { IProductRepository } from '../../../interfaces/product-repository.inter
 import { Product } from '../../../../domain/entities/product.entity';
 
 export class GetProductUseCase implements IUseCase<
-  { id: string },
+  { id: number },
   Product | null
 > {
   constructor(private readonly productRepository: IProductRepository) {}
 
-  async execute(input: { id: string }): Promise<Product | null> {
+  async execute(input: { id: number }): Promise<Product | null> {
     return this.productRepository.findById(input.id);
   }
 }

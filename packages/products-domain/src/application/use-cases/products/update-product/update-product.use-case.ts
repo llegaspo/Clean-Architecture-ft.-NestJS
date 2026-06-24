@@ -4,7 +4,7 @@ import { IProductRepository } from '../../../interfaces/product-repository.inter
 import { Product } from '../../../../domain/entities/product.entity';
 import type { CreateProductInput } from '../create-product/create-product.use-case';
 
-type UpdateProductInput = Partial<CreateProductInput> & { id: string };
+type UpdateProductInput = Partial<CreateProductInput> & { id: number };
 
 export class UpdateProductUseCase implements IUseCase<
   UpdateProductInput,

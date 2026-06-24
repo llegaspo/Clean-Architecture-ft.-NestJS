@@ -1,12 +1,18 @@
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   IProductRepository,
-  productFilters,
+  type ProductPagination,
 } from '../../application/interfaces/product-repository.interface';
 import { PRODUCT_DATABASE } from '../rxdb/database.provider';
 import type { ProductDatabase } from '../rxdb/database.type';
 import { Product } from '../../domain/entities/product.entity';
 import { ProductDocType } from '../rxdb/product.schema';
+import { ProductFilters } from '../../application/interfaces/product-repository.interface';
 
 @Injectable()
 export class RxdbProductRepository implements IProductRepository {
@@ -20,17 +26,17 @@ export class RxdbProductRepository implements IProductRepository {
 
   private toPersistence(product: Product): ProductDocType {
     return {
-      productId: product.id ?? crypto.randomUUID(),
+      id: product.id ?? Date.now(),
       name: product.name,
       price: product.price,
       stock: product.stock,
-      categoryId: product.categoryId ?? undefined,
+      categoryId: product.categoryId,
     };
   }
 
   private toDomain(raw: ProductDocType): Product {
     return Product.reconstitute({
-      productId: raw.productId,
+      productId: raw.id,
       name: raw.name,
       price: raw.price,
       stock: raw.stock,
@@ -50,51 +56,118 @@ export class RxdbProductRepository implements IProductRepository {
     }
   }
 
-  async findById(productId: string): Promise<Product | null> {
-    const fetchedProduct =
-      await this.ProductCollections.findOne(productId).exec();
+  async findById(productId: number): Promise<Product | null> {
+    const fetchedProduct = await this.ProductCollections.findOne({
+      selector: {
+        id: {
+          $eq: productId,
+        },
+      },
+    }).exec();
     if (fetchedProduct) return this.toDomain(fetchedProduct.toJSON());
     return null;
   }
 
-  async findMany(filters: productFilters): Promise<Product[]> {
-    const selector: Record<string, unknown> = {};
+  async findMany(filters?: ProductFilters): Promise<Product[]> {
+    const selector: Record<string, Record<string, number>> = {};
 
-    if (filters.categoryId != null) {
-      selector.categoryId = {
-        $eq: filters.categoryId,
-      };
+    if (filters?.categoryId !== undefined) {
+      selector.categoryId = { $eq: filters.categoryId };
     }
-
-    if (filters.minPrice != null || filters.maxPrice != null) {
+    if (filters?.minPrice !== undefined || filters?.maxPrice !== undefined) {
       selector.price = {};
 
-      if (filters.minPrice != null) {
-        (selector.price as Record<string, number>).$gte = filters.minPrice;
+      if (filters.minPrice !== undefined) {
+        selector.price = { $gte: filters.minPrice };
       }
-
-      if (filters.maxPrice != null) {
-        (selector.price as Record<string, number>).$lte = filters.maxPrice;
+      if (filters.maxPrice !== undefined) {
+        selector.price = { $lte: filters.maxPrice };
       }
     }
 
-    if (filters.search != null && filters.search.trim() !== '') {
-      selector.name = {
-        $regex: `.*${filters.search.trim()}.*`,
-      };
-    }
-
-    const products = await this.ProductCollections.find({
+    let products = await this.ProductCollections.find({
       selector,
-      limit: filters.limit,
-      skip: filters.offset,
     }).exec();
+
+    if (filters?.search?.trim()) {
+      const search = filters.search.trim().toLowerCase();
+      products = products.filter((product) =>
+        product.name.trim().toLowerCase().includes(search),
+      );
+    }
 
     return products.map((product) => this.toDomain(product.toJSON()));
   }
 
-  async delete(productId: string): Promise<void> {
-    const productDoc = this.ProductCollections.findOne(productId);
+  async delete(productId: number): Promise<void> {
+    const productDoc = this.ProductCollections.findOne({
+      selector: {
+        id: {
+          $eq: productId,
+        },
+      },
+    });
+    if (!productDoc) throw new NotFoundException('Product not found');
     await productDoc.remove();
+  }
+
+  async findByName(productName: string): Promise<Product[]> {
+    const allProductDoc = await this.ProductCollections.find().exec();
+
+    const filteredProduct = allProductDoc.filter((product) =>
+      product.name.toLowerCase().includes(productName.toLowerCase()),
+    );
+    return filteredProduct.map((product) => this.toDomain(product.toJSON()));
+  }
+
+  async findByPage(page: number, limit: number): Promise<ProductPagination> {
+    const allProduct = await this.ProductCollections.find().exec();
+    const pages = Math.ceil(allProduct.length / limit);
+    const start = limit * (page - 1);
+    const end = start + limit - 1;
+
+    return {
+      data: allProduct
+        .slice(start, end)
+        .map((product) => this.toDomain(product.toJSON())),
+      meta: {
+        total: allProduct.length,
+        page: page,
+        limit: limit,
+        totalPages: pages,
+      },
+    };
+  }
+  async findByPrice(minPrice?: number, maxPrice?: number): Promise<Product[]> {
+    let selector = {};
+    if (minPrice != undefined && maxPrice != undefined) {
+      if (minPrice > maxPrice)
+        throw new BadRequestException(
+          'min price cannot be greater than the max price',
+        );
+      selector = {
+        price: {
+          $gte: minPrice,
+          $lte: maxPrice,
+        },
+      };
+    } else if (minPrice != undefined && maxPrice == undefined)
+      selector = {
+        price: {
+          $gte: minPrice,
+        },
+      };
+    else if (minPrice == undefined && maxPrice != undefined)
+      selector = {
+        price: {
+          $lte: maxPrice,
+        },
+      };
+
+    const filteredProduct = await this.ProductCollections.find({
+      selector,
+    }).exec();
+
+    return filteredProduct.map((product) => this.toDomain(product.toJSON()));
   }
 }

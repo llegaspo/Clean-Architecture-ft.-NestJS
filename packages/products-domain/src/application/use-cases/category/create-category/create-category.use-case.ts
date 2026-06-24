@@ -2,6 +2,7 @@ import { IUseCase } from '../../../interfaces/use-case.interface';
 import { ICategoryRepository } from '../../../interfaces/category-repository.interface';
 
 import { Category } from '../../../../domain/entities/category.entity';
+import { BadRequestException } from '@nestjs/common';
 
 export class CreateCategoryUseCase implements IUseCase<
   { name: string },
@@ -14,7 +15,8 @@ export class CreateCategoryUseCase implements IUseCase<
       input.name,
     );
 
-    if (existingCategory) throw new Error('Category already exists');
+    if (existingCategory)
+      throw new BadRequestException('Category already exists');
 
     const newCategory = Category.create(input);
 

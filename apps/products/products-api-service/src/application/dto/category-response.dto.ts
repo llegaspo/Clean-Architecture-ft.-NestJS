@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 const categoryResponseSchema = z.object({
-  categoryId: z.string(),
+  id: z.number().int(),
   name: z.string().min(1),
 });
 
